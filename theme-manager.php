@@ -13,8 +13,12 @@ function main_theme_options_do_page() {
         <?php endif; ?>
 
         <form method="post" action="options.php">
-            <?php settings_fields('main_options'); ?>
-            <?php $mainoptions = get_option('main_theme_options'); ?>
+            <?php
+            settings_fields('main_options');
+            $optionname= 'main_theme_options';
+            $mainoptions = get_option($options);
+            autoc_def_textfield($optionname, 'awesomesauce');
+            ?>
             <p class="submit">
                 <input type="submit" class="button-primary" value="<?php _e('Save Options', 'sampletheme'); ?>" />
             </p>

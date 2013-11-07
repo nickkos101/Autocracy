@@ -1,5 +1,18 @@
 <?php
 
+//Field Definition Functions
+
+function autoc_def_textfield($optioname, $id) {
+
+	$option = get_option($optioname);
+
+	echo '<input type="text" size="36" ';
+	echo 'name='.$optioname. '['. $id .'] ';
+	echo 'value="'.__($option[$id]).'" />'; 
+}
+
+//Accessor Functions
+
 function autoc_get_img($id) {
 	global $wpdb;
 	$images = get_post_meta( get_the_ID(), $id, false );
