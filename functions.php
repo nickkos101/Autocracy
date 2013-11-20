@@ -25,7 +25,7 @@ function autoc_def_textarea($optioname, $id) {
 
 //Accessor Functions
 
-function autoc_get_img($id) {
+function autoc_get_img($id, $return) {
 	global $wpdb;
 	$images = get_post_meta( get_the_ID(), $id, false );
 	$images = implode( ',' , $images );
@@ -40,15 +40,25 @@ function autoc_get_img($id) {
 	{
 		$src = wp_get_attachment_image_src( $att, 'full' );
 		$src = $src[0];
-		echo "<img alt='image' src='{$src}' />";
+		if($return === true) {
+			return "<img alt='image' src='{$src}' />";
+		}
+		else {
+			echo  "<img alt='image' src='{$src}' />";
+		}
 	}
 
 }
 
-function autoc_get_postdata($id) {
+function autoc_get_postdata($id, $return) {
 	global $wpdb;
 	$postdata = get_post_meta( get_the_ID(), $id, false );
-	echo $postdata;
+	if ($return === true) {
+		return $postdata;
+	} 
+	else {
+		echo $postdata;
+	}
 }
 
 
