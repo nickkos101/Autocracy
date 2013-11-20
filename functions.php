@@ -11,6 +11,18 @@ function autoc_def_textfield($optioname, $id) {
 	echo 'value="'.__($option[$id]).'" />'; 
 }
 
+function autoc_def_textarea($optioname, $id) {
+
+	$option = get_option($optioname);
+
+	echo '<textarea size="36" ';
+	echo 'name='.$optioname. '['. $id .'] ';
+	echo '>';
+	echo __($option[$id]);
+	echo '</textarea>'; 
+
+}
+
 //Accessor Functions
 
 function autoc_get_img($id) {
