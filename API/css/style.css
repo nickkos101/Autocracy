@@ -12,12 +12,9 @@
 .rwmb-label {
 	width: 24%;
 }
-.rwmb-label.required {
-	font-weight: bold;
-}
-.rwmb-label.required > span
-{
+.rwmb-label.required > span {
 	color: #c00;
+	font-weight: bold;
 }
 
 /* 75% if field has label, 100% if no label */
@@ -37,25 +34,20 @@
 /* Clone */
 .rwmb-clone {
 	min-height: 24px;
+	margin-bottom: 5px;
+	position: relative;
 }
 .rwmb-clone > input[type="radio"],
 .rwmb-clone > input[type="checkbox"] {
 	margin: 6px 0 0 4px;
 }
 .rwmb-button {
-	display: inline;
 	float: right;
 }
-
-/* Fix width to not overlap button for cloned sliders */
-.rwmb-clone .rwmb-slider {
-	width: 80%;
-	margin: 6px 0 0;
-}
-
-/* Fix buttons after sliders */
-.clearfix + .rwmb-button {
-	margin-top: -16px;
+.rwmb-button.remove-clone {
+	position: absolute;
+	top: 0;
+	right: 0;
 }
 
 /* Fix empty block below admin footer (issue #24) */
@@ -74,6 +66,7 @@ select.error {
 	border: #c00 solid 1px !important;
 	background: #ffebe8 !important;
 }
+
 
 /* =Styles for 'side' meta boxes
 -------------------------------------------------------------- */

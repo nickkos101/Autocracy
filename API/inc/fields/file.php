@@ -4,7 +4,7 @@ defined( 'ABSPATH' ) || exit;
 
 if ( ! class_exists( 'RWMB_File_Field' ) )
 {
-	class RWMB_File_Field
+	class RWMB_File_Field extends RWMB_Field
 	{
 		/**
 		 * Enqueue scripts and styles
@@ -13,7 +13,12 @@ if ( ! class_exists( 'RWMB_File_Field' ) )
 		 */
 		static function admin_enqueue_scripts()
 		{
-			wp_enqueue_script( 'rwmb-file', RWMB_JS_URL . 'file.js', array( 'jquery', 'wp-ajax-response' ), RWMB_VER, true );
+			wp_enqueue_style( 'rwmb-file', RWMB_CSS_URL . 'file.css', array(), RWMB_VER );
+			wp_enqueue_script( 'rwmb-file', RWMB_JS_URL . 'file.js', array( 'jquery' ), RWMB_VER, true );
+			wp_localize_script( 'rwmb-file', 'rwmbFile', array(
+				'maxFileUploadsSingle' => __( 'You may only upload maximum %d file', 'rwmb' ),
+				'maxFileUploadsPlural' => __( 'You may only upload maximum %d files', 'rwmb' ),
+			) );
 		}
 
 		/**
@@ -52,70 +57,110 @@ if ( ! class_exists( 'RWMB_File_Field' ) )
 			$post_id       = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
 			$field_id      = isset( $_POST['field_id'] ) ? $_POST['field_id'] : 0;
 			$attachment_id = isset( $_POST['attachment_id'] ) ? intval( $_POST['attachment_id'] ) : 0;
+			$force_delete  = isset( $_POST['force_delete'] ) ? intval( $_POST['force_delete'] ) : 0;
 
-			check_admin_referer( "rwmb-delete-file_{$field_id}" );
+			check_ajax_referer( "rwmb-delete-file_{$field_id}" );
 
 			delete_post_meta( $post_id, $field_id, $attachment_id );
-			$ok = wp_delete_attachment( $attachment_id );
+			$ok = $force_delete ? wp_delete_attachment( $attachment_id ) : true;
 
 			if ( $ok )
-				RW_Meta_Box::ajax_response( '', 'success' );
+				wp_send_json_success();
 			else
-				RW_Meta_Box::ajax_response( __( 'Error: Cannot delete file', 'rwmb' ), 'error' );
+				wp_send_json_error( __( 'Error: Cannot delete file', 'rwmb' ) );
 		}
 
 		/**
 		 * Get field HTML
 		 *
-		 * @param string $html
 		 * @param mixed  $meta
 		 * @param array  $field
 		 *
 		 * @return string
 		 */
-		static function html( $html, $meta, $field )
+		static function html( $meta, $field )
 		{
-			$i18n_delete = _x( 'Delete', 'file upload', 'rwmb' );
-			$i18n_title  = _x( 'Upload files', 'file upload', 'rwmb' );
-			$i18n_more   = _x( '+ Add new file', 'file upload', 'rwmb' );
-
-			$html = wp_nonce_field( "rwmb-delete-file_{$field['id']}", "nonce-delete-file_{$field['id']}", false, false );
+			$i18n_title = apply_filters( 'rwmb_file_upload_string', _x( 'Upload Files', 'file upload', 'rwmb' ), $field );
+			$i18n_more  = apply_filters( 'rwmb_file_add_string', _x( '+ Add new file', 'file upload', 'rwmb' ), $field );
 
 			// Uploaded files
-			if ( ! empty( $meta ) )
-			{
-				$html .= '<ol class="rwmb-uploaded">';
-				$li = '<li>%s (<a title="%s" class="rwmb-delete-file" href="#" data-field_id="%s" data-attachment_id="%s">%s</a>)</li>';
-
-				foreach ( $meta as $attachment_id )
-				{
-					$attachment = wp_get_attachment_link( $attachment_id );
-					$html .= sprintf(
-						$li,
-						$attachment,
-						$i18n_delete,
-						$field['id'],
-						$attachment_id,
-						$i18n_delete
-					);
-				}
-
-				$html .= '</ol>';
-			}
+			$html = self::get_uploaded_files( $meta, $field );
+			$new_file_classes = array( 'new-files' );
+			if ( !empty( $field['max_file_uploads'] ) && count( $meta ) >= (int) $field['max_file_uploads'] )
+				$new_file_classes[] = 'hidden';
 
 			// Show form upload
 			$html .= sprintf(
-				'<h4>%s</h4>
-				<div class="new-files">
+				'<div class="%s">
+					<h4>%s</h4>
 					<div class="file-input"><input type="file" name="%s[]" /></div>
 					<a class="rwmb-add-file" href="#"><strong>%s</strong></a>
 				</div>',
+				implode( ' ', $new_file_classes ),
 				$i18n_title,
 				$field['id'],
 				$i18n_more
 			);
 
 			return $html;
+		}
+
+		static function get_uploaded_files( $files, $field )
+		{
+			$delete_nonce = wp_create_nonce( "rwmb-delete-file_{$field['id']}" );
+			$classes = array('rwmb-file', 'rwmb-uploaded');
+			if ( count( $files ) <= 0  )
+				$classes[] = 'hidden';
+			$ol = '<ul class="%s" data-field_id="%s" data-delete_nonce="%s" data-force_delete="%s" data-max_file_uploads="%s" data-mime_type="%s">';
+			$html = sprintf(
+				$ol,
+				implode( ' ', $classes ),
+				$field['id'],
+				$delete_nonce,
+				$field['force_delete'] ? 1 : 0,
+				$field['max_file_uploads'],
+				$field['mime_type']
+			);
+
+			foreach ( $files as $attachment_id )
+			{
+				$html .= self::file_html( $attachment_id );
+			}
+
+			$html .= '</ul>';
+
+			return $html;
+		}
+
+		static function file_html( $attachment_id )
+		{
+			$i18n_delete = apply_filters( 'rwmb_file_delete_string', _x( 'Delete', 'file upload', 'rwmb' ) );
+			$i18n_edit   = apply_filters( 'rwmb_file_edit_string', _x( 'Edit', 'file upload', 'rwmb' ) );
+			$li = '
+			<li>
+				<div class="rwmb-icon">%s</div>
+				<div class="rwmb-info">
+					<a href="%s" target="_blank">%s</a>
+					<p>%s</p>
+					<a title="%s" href="%s" target="_blank">%s</a> |
+					<a title="%s" class="rwmb-delete-file" href="#" data-attachment_id="%s">%s</a>
+				</div>
+			</li>';
+
+			$mime_type = get_post_mime_type( $attachment_id );
+			return sprintf(
+				$li,
+				wp_get_attachment_image( $attachment_id, array(60,60), true ),
+				wp_get_attachment_url($attachment_id),
+				get_the_title( $attachment_id ),
+				$mime_type,
+				$i18n_edit,
+				get_edit_post_link( $attachment_id ),
+				$i18n_edit,
+				$i18n_delete,
+				$attachment_id,
+				$i18n_delete
+			);
 		}
 
 		/**
@@ -199,9 +244,29 @@ if ( ! class_exists( 'RWMB_File_Field' ) )
 		 */
 		static function normalize_field( $field )
 		{
+			$field = wp_parse_args( $field, array(
+				'std'              => array(),
+				'force_delete'     => false,
+				'max_file_uploads' => 0,
+				'mime_type'        => '',
+			) );
 			$field['multiple'] = true;
-			$field['std'] = empty( $field['std'] ) ? array() : $field['std'];
 			return $field;
+		}
+
+		/**
+		 * Standard meta retrieval
+		 *
+		 * @param int   $post_id
+		 * @param array $field
+		 * @param bool  $saved
+		 *
+		 * @return mixed
+		 */
+		static function meta( $post_id, $saved, $field )
+		{
+			$meta = parent::meta( $post_id, $saved, $field );
+			return empty( $meta ) ? array() : (array) $meta;
 		}
 	}
 }

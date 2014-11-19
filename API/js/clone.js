@@ -1,4 +1,4 @@
-jQuery( document ).ready( function ( $ )
+jQuery( document ).ready( function( $ )
 {
 	toggle_remove_buttons();
 
@@ -7,15 +7,15 @@ jQuery( document ).ready( function ( $ )
 		var $clone_last = $input.find( '.rwmb-clone:last' ),
 			$clone = $clone_last.clone(),
 			$input, name;
-
+	
 		$clone.insertAfter( $clone_last );
-		$input = $clone.find( ':input' );
+		$input = $clone.find( ':input[class|="rwmb"]' );
 
 		// Reset value
 		$input.val( '' );
 
 		// Get the field name, and increment
-		name = $input.attr( 'name' ).replace( /\[(\d+)\]/, function ( match, p1 )
+		name = $input.attr( 'name' ).replace( /\[(\d+)\]/, function( match, p1 )
 		{
 			return '[' + ( parseInt( p1 ) + 1 ) + ']';
 		} );
@@ -25,27 +25,15 @@ jQuery( document ).ready( function ( $ )
 
 		// Toggle remove buttons
 		toggle_remove_buttons( $input );
-
-		// Fix color picker
-		if ( 'function' === typeof rwmb_update_color_picker )
-			rwmb_update_color_picker();
-
-		// Fix date picker
-		if ( 'function' === typeof rwmb_update_date_picker )
-			rwmb_update_date_picker();
-
-		// Fix time picker
-		if ( 'function' === typeof rwmb_update_time_picker )
-			rwmb_update_time_picker();
-
-		// Fix datetime picker
-		if ( 'function' === typeof rwmb_update_datetime_picker )
-			rwmb_update_datetime_picker();
+		
+		//Trigger custom clone event
+		$input.trigger( 'clone' );
 	}
 
 	// Add more clones
-	$( '.add-clone' ).click( function ()
+	$( '.add-clone' ).on( 'click', function( e )
 	{
+		e.stopPropagation();
 		var $input = $( this ).parents( '.rwmb-input' ),
 			$clone_group = $( this ).parents( '.rwmb-field' ).attr( "clone-group" );
 
@@ -59,7 +47,7 @@ jQuery( document ).ready( function ( $ )
 			var $clone_group_list = $metabox.find( 'div[clone-group="' + $clone_group + '"]' );
 
 			$.each( $clone_group_list.find( '.rwmb-input' ),
-				function ( key, value )
+				function( key, value )
 				{
 					add_cloned_fields( $( value ) );
 				} );
@@ -73,7 +61,7 @@ jQuery( document ).ready( function ( $ )
 	} );
 
 	// Remove clones
-	$( '.rwmb-input' ).delegate( '.remove-clone', 'click', function ()
+	$( '.rwmb-input' ).on( 'click', '.remove-clone', function()
 	{
 		var $this = $( this ),
 			$input = $this.parents( '.rwmb-input' ),
@@ -92,7 +80,7 @@ jQuery( document ).ready( function ( $ )
 			var $index = $this.parent().index();
 
 			$.each( $clone_group_list.find( '.rwmb-input' ),
-				function ( key, value )
+				function( key, value )
 				{
 					$( value ).children( '.rwmb-clone' ).eq( $index ).remove();
 
@@ -123,7 +111,7 @@ jQuery( document ).ready( function ( $ )
 		var $button;
 		if ( !$el )
 			$el = $( '.rwmb-field' );
-		$el.each( function ()
+		$el.each( function()
 		{
 			$button = $( this ).find( '.remove-clone' );
 			$button.length < 2 ? $button.hide() : $button.show();
